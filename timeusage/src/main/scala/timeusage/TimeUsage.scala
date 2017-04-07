@@ -89,26 +89,17 @@ object TimeUsage {
     * 3. other activities (leisure). These are the columns starting with “t02”, “t04”, “t06”, “t07”, “t08”, “t09”,
     *    “t10”, “t12”, “t13”, “t14”, “t15”, “t16” and “t18” (those which are not part of the previous groups only).
     */
+
+  //Set(t0201, t180101, t180201, t180501, t180301, t0601) did not equal Set(t0201, t0601, t180201)
   def classifiedColumns(columnNames: List[String]): (List[Column], List[Column], List[Column]) = {
-    val primaryNeeds = columnNames.filter(c => c.startsWith("t01")   ||
-                                               c.startsWith("t03")   ||
-                                               c.startsWith("t11")   ||
-                                               c.startsWith("t1801") ||
-                                               c.startsWith("t1803")).map(x => col(x))
-    val workingActivities = columnNames.filter(c => c.startsWith("t05") || c.startsWith("t1805")).map(x => col(x))
-    val otherActivities = columnNames.filter(c => c.startsWith("t02") ||
-                                                  c.startsWith("t04") ||
-                                                  c.startsWith("t06") ||
-                                                  c.startsWith("t07") ||
-                                                  c.startsWith("t08") ||
-                                                  c.startsWith("t09") ||
-                                                  c.startsWith("t10") ||
-                                                  c.startsWith("t12") ||
-                                                  c.startsWith("t13") ||
-                                                  c.startsWith("t14") ||
-                                                  c.startsWith("t15") ||
-                                                  c.startsWith("t16") ||
-                                                  c.startsWith("t18")).map(x => col(x))
+
+    val primaryNeedsPrefix = List("t01", "t03", "t11", "t1801", "t1803")
+    val workingActivitiesPrefix = List("t05", "t1805")
+    val otherActivitiesPrefix = List ("t02", "t04", "t06", "t07", "t08", "t09", "t10", "t12", "t13", "t14", "t15", "t16", "t18")
+
+    val primaryNeeds = columnNames.filter(c => primaryNeedsPrefix.map(p => c.startsWith(p)).reduce(_ || _)).map(x => col(x))
+    val workingActivities = columnNames.filter(c => workingActivitiesPrefix.map(p => c.startsWith(p)).reduce(_ || _)).map(x => col(x))
+    val otherActivities = columnNames.filter(c => otherActivitiesPrefix.map(p => c.startsWith(p)).reduce(_ || _) && !(primaryNeeds ++ workingActivities).contains(c)) .map(x => col(x))
     (primaryNeeds, workingActivities, otherActivities)
   }
 
@@ -222,7 +213,7 @@ object TimeUsage {
     * @param viewName Name of the SQL view to use
     */
   def timeUsageGroupedSqlQuery(viewName: String): String =
-    """SELECT working, sex, age, primaryNeeds, ROUND(AVG(primaryNeeds),1) AS primaryNeeds, ROUND(AVG(work),1) AS work, ROUND(AVG(other),1) AS other
+    """SELECT working, sex, age, ROUND(AVG(primaryNeeds),1) AS primaryNeeds, ROUND(AVG(work),1) AS work, ROUND(AVG(other),1) AS other
        FROM """+ viewName + """
        GROUP BY working, sex, age
        ORDER BY working, sex, age"""
